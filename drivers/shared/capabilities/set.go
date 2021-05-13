@@ -1,3 +1,4 @@
+// Package capabilities is used for managing sets of linux capabilities.
 package capabilities
 
 import (
@@ -10,7 +11,14 @@ type nothing struct{}
 var null = nothing{}
 
 // Set represents a group linux capabilities, implementing some useful set
-// operations, taking care of name normalization.
+// operations, taking care of name normalization, and sentinel value expansions.
+//
+// Linux capabilities can be expressed in multiple ways when working with docker
+// and/or libcontainer, along with Nomad.
+//
+// Capability names may be upper or lower case, and may or may not be prefixed
+// with "CAP_" or "cap_". On top of that, Nomad interprets the special name "all"
+// and "ALL" to mean "all capabilities supported by the operating system".
 type Set struct {
 	data map[string]nothing
 }
@@ -75,7 +83,7 @@ func (s *Set) Empty() bool {
 
 // String returns the normalized and sorted string representation of s.
 func (s *Set) String() string {
-	return strings.Join(s.Slice(), ",")
+	return strings.Join(s.Slice(), ", ")
 }
 
 // Slice returns a sorted slice of capabilities in s.

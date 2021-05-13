@@ -155,6 +155,10 @@ func (c *Config) validate() error {
 	}
 
 	// todo: validate allow_caps
+	fmt.Println("Config.validate, allow_caps:", c.AllowCaps)
+	if len(c.AllowCaps) == 0 {
+		panic("allow_caps is empty")
+	}
 
 	return nil
 }
@@ -281,19 +285,18 @@ func (d *Driver) getCaps(tc *TaskConfig) ([]string, error) {
 
 	// determine caps the task wants that are not allowed
 	taskCaps := capabilities.New(tc.CapAdd)
-	taskCaps.Remove(tc.CapDrop)
-	missing := taskCaps.Difference(driverAllowed)
+	missing := driverAllowed.Difference(taskCaps)
 	if !missing.Empty() {
 		return nil, fmt.Errorf("driver does not allow the following capabilities: %s", missing)
 	}
 
-	// if task did not specify allowed caps, use nomads defaults - task drops
+	// if task did not specify allowed caps, use nomad defaults minus task drops
 	if len(tc.CapAdd) == 0 {
 		driverAllowed.Remove(tc.CapDrop)
 		return driverAllowed.Slice(), nil
 	}
 
-	// otherwise task did specify allowed caps, use just those
+	// otherwise task did specify allowed caps, enable exactly those
 	taskAdd := capabilities.New(tc.CapAdd)
 	return taskAdd.Slice(), nil
 }

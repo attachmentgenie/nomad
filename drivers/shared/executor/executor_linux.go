@@ -757,16 +757,17 @@ func newLibcontainerConfig(command *ExecCommand) (*lconfigs.Config, error) {
 		},
 		Version: "1.0.0",
 	}
+
 	for _, device := range specconv.AllowedDevices {
 		cfg.Cgroups.Resources.Devices = append(cfg.Cgroups.Resources.Devices, &device.Rule)
 	}
 
-	if err := configureCapabilities(cfg, command); err != nil {
-		return nil, err
-	}
+	configureCapabilities(cfg, command)
+
 	if err := configureIsolation(cfg, command); err != nil {
 		return nil, err
 	}
+
 	if err := configureCgroups(cfg, command); err != nil {
 		return nil, err
 	}
