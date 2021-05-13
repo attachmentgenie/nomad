@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/nomad/drivers/shared/capabilities"
 	"github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/armon/circbuf"
@@ -532,13 +533,12 @@ func (l *LibcontainerExecutor) handleExecWait(ch chan *waitResult, process *libc
 	ch <- &waitResult{ps, err}
 }
 
-func configureCapabilities(cfg *lconfigs.Config, command *ExecCommand) error {
-	// TODO(shoenig): allow better control of these
-	// use capabilities list as prior to adopting libcontainer in 0.9
-
-	// match capabilities used in Nomad 0.8
-	if command.User == "root" {
-		allCaps := SupportedCaps(true)
+func configureCapabilities(cfg *lconfigs.Config, command *ExecCommand) {
+	switch command.User {
+	case "root":
+		// when running as root, enable all capabilities available on the system
+		// (preserving existing behavior)
+		allCaps := capabilities.Supported().Slice()
 		cfg.Capabilities = &lconfigs.Capabilities{
 			Bounding:    allCaps,
 			Permitted:   allCaps,
@@ -546,14 +546,12 @@ func configureCapabilities(cfg *lconfigs.Config, command *ExecCommand) error {
 			Ambient:     nil,
 			Inheritable: nil,
 		}
-	} else {
-		allCaps := SupportedCaps(false)
+	default:
+		// otherwise apply the plugin + task capability configuration
 		cfg.Capabilities = &lconfigs.Capabilities{
-			Bounding: allCaps,
+			Bounding: command.Capabilities,
 		}
 	}
-
-	return nil
 }
 
 func configureNamespaces(pidMode, ipcMode string) lconfigs.Namespaces {

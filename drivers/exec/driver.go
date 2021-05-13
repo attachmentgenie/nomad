@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/nomad/client/lib/cgutil"
+	"github.com/hashicorp/nomad/drivers/shared/capabilities"
 
 	"github.com/hashicorp/consul-template/signals"
 	hclog "github.com/hashicorp/go-hclog"
@@ -74,6 +75,10 @@ var (
 			hclspec.NewAttr("default_ipc_mode", "string", false),
 			hclspec.NewLiteral(`"private"`),
 		),
+		"allow_caps": hclspec.NewDefault(
+			hclspec.NewAttr("allow_caps", "list(string)", false),
+			hclspec.NewLiteral(capabilities.HCLSpecLiteral),
+		),
 	})
 
 	// taskConfigSpec is the hcl specification for the driver config section of
@@ -83,20 +88,9 @@ var (
 		"args":     hclspec.NewAttr("args", "list(string)", false),
 		"pid_mode": hclspec.NewAttr("pid_mode", "string", false),
 		"ipc_mode": hclspec.NewAttr("ipc_mode", "string", false),
+		"cap_add":  hclspec.NewAttr("cap_add", "list(string)", false),
+		"cap_drop": hclspec.NewAttr("cap_drop", "list(string)", false),
 	})
-
-	// capabilities is returned by the Capabilities RPC and indicates what
-	// optional features this driver supports
-	capabilities = &drivers.Capabilities{
-		SendSignals: true,
-		Exec:        true,
-		FSIsolation: drivers.FSIsolationChroot,
-		NetIsolationModes: []drivers.NetIsolationMode{
-			drivers.NetIsolationModeHost,
-			drivers.NetIsolationModeGroup,
-		},
-		MountConfigs: drivers.MountConfigSupportAll,
-	}
 )
 
 // Driver fork/execs tasks using many of the underlying OS's isolation
@@ -141,6 +135,10 @@ type Config struct {
 	// DefaultModeIPC is the default IPC isolation set for all tasks using
 	// exec-based task drivers.
 	DefaultModeIPC string `codec:"default_ipc_mode"`
+
+	// AllowCaps configures which Linux Capabilities are enabled for tasks
+	// running on this node.
+	AllowCaps []string `codec:"allow_caps"`
 }
 
 func (c *Config) validate() error {
@@ -155,6 +153,8 @@ func (c *Config) validate() error {
 	default:
 		return fmt.Errorf("default_ipc_mode must be %q or %q, got %q", executor.IsolationModePrivate, executor.IsolationModeHost, c.DefaultModeIPC)
 	}
+
+	// todo: validate allow_caps
 
 	return nil
 }
@@ -174,6 +174,12 @@ type TaskConfig struct {
 	// ModeIPC indicates whether IPC namespace isolation is enabled for the task.
 	// Must be "private" or "host" if set.
 	ModeIPC string `codec:"ipc_mode"`
+
+	// CapAdd is a set of linux capabilities to enable.
+	CapAdd []string `codec:"cap_add"`
+
+	// CapDrop is a set of linux capabilities to disable.
+	CapDrop []string `codec:"cap_drop"`
 }
 
 func (tc *TaskConfig) validate() error {
@@ -188,6 +194,8 @@ func (tc *TaskConfig) validate() error {
 	default:
 		return fmt.Errorf("ipc_mode must be %q or %q, got %q", executor.IsolationModePrivate, executor.IsolationModeHost, tc.ModeIPC)
 	}
+
+	// todo: validate cap_add, cap_drop
 
 	return nil
 }
@@ -266,8 +274,43 @@ func (d *Driver) TaskConfigSchema() (*hclspec.Spec, error) {
 	return taskConfigSpec, nil
 }
 
+// getCaps computes the complete set of linux capabilities to enable for driver,
+// which gets passed along to libcontainer.
+func (d *Driver) getCaps(tc *TaskConfig) ([]string, error) {
+	driverAllowed := capabilities.New(d.config.AllowCaps)
+
+	// determine caps the task wants that are not allowed
+	taskCaps := capabilities.New(tc.CapAdd)
+	taskCaps.Remove(tc.CapDrop)
+	missing := taskCaps.Difference(driverAllowed)
+	if !missing.Empty() {
+		return nil, fmt.Errorf("driver does not allow the following capabilities: %s", missing)
+	}
+
+	// if task did not specify allowed caps, use nomads defaults - task drops
+	if len(tc.CapAdd) == 0 {
+		driverAllowed.Remove(tc.CapDrop)
+		return driverAllowed.Slice(), nil
+	}
+
+	// otherwise task did specify allowed caps, use just those
+	taskAdd := capabilities.New(tc.CapAdd)
+	return taskAdd.Slice(), nil
+}
+
+// Capabilities is returned by the Capabilities RPC and indicates what
+// optional features this driver supports
 func (d *Driver) Capabilities() (*drivers.Capabilities, error) {
-	return capabilities, nil
+	return &drivers.Capabilities{
+		SendSignals: true,
+		Exec:        true,
+		FSIsolation: drivers.FSIsolationChroot,
+		NetIsolationModes: []drivers.NetIsolationMode{
+			drivers.NetIsolationModeHost,
+			drivers.NetIsolationModeGroup,
+		},
+		MountConfigs: drivers.MountConfigSupportAll,
+	}, nil
 }
 
 func (d *Driver) Fingerprint(ctx context.Context) (<-chan *drivers.Fingerprint, error) {
@@ -439,6 +482,13 @@ func (d *Driver) StartTask(cfg *drivers.TaskConfig) (*drivers.TaskHandle, *drive
 		cfg.Mounts = append(cfg.Mounts, dnsMount)
 	}
 
+	caps, err := d.getCaps(&driverConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	fmt.Println("SH caps:", caps)
+
 	execCmd := &executor.ExecCommand{
 		Cmd:              driverConfig.Command,
 		Args:             driverConfig.Args,
@@ -455,6 +505,7 @@ func (d *Driver) StartTask(cfg *drivers.TaskConfig) (*drivers.TaskHandle, *drive
 		NetworkIsolation: cfg.NetworkIsolation,
 		ModePID:          executor.IsolationMode(d.config.DefaultModePID, driverConfig.ModePID),
 		ModeIPC:          executor.IsolationMode(d.config.DefaultModeIPC, driverConfig.ModeIPC),
+		Capabilities:     caps,
 	}
 
 	ps, err := exec.Launch(execCmd)
@@ -482,7 +533,7 @@ func (d *Driver) StartTask(cfg *drivers.TaskConfig) (*drivers.TaskHandle, *drive
 
 	if err := handle.SetDriverState(&driverState); err != nil {
 		d.logger.Error("failed to start task, error setting driver state", "error", err)
-		exec.Shutdown("", 0)
+		_ = exec.Shutdown("", 0)
 		pluginClient.Kill()
 		return nil, nil, fmt.Errorf("failed to set driver state: %v", err)
 	}
