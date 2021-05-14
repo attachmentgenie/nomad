@@ -154,10 +154,9 @@ func (c *Config) validate() error {
 		return fmt.Errorf("default_ipc_mode must be %q or %q, got %q", executor.IsolationModePrivate, executor.IsolationModeHost, c.DefaultModeIPC)
 	}
 
-	// todo: validate allow_caps
-	fmt.Println("Config.validate, allow_caps:", c.AllowCaps)
-	if len(c.AllowCaps) == 0 {
-		panic("allow_caps is empty")
+	badCaps := capabilities.Supported().Difference(capabilities.New(c.AllowCaps))
+	if !badCaps.Empty() {
+		return fmt.Errorf("allow_caps configured with capabilities not supported by system: %s", badCaps)
 	}
 
 	return nil
@@ -199,7 +198,15 @@ func (tc *TaskConfig) validate() error {
 		return fmt.Errorf("ipc_mode must be %q or %q, got %q", executor.IsolationModePrivate, executor.IsolationModeHost, tc.ModeIPC)
 	}
 
-	// todo: validate cap_add, cap_drop
+	supported := capabilities.Supported()
+	badAdds := supported.Difference(capabilities.New(tc.CapAdd))
+	if !badAdds.Empty() {
+		return fmt.Errorf("cap_add configured with capabilities not supported by system: %s", badAdds)
+	}
+	badDrops := supported.Difference(capabilities.New(tc.CapDrop))
+	if !badDrops.Empty() {
+		return fmt.Errorf("cap_drop configured with capabilities not supported by system: %s", badDrops)
+	}
 
 	return nil
 }

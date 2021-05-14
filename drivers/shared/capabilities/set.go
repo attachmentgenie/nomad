@@ -26,7 +26,7 @@ type Set struct {
 func New(caps []string) *Set {
 	m := make(map[string]nothing, len(caps))
 	for _, c := range caps {
-		m[normalize(c)] = null
+		insert(m, c)
 	}
 	return &Set{data: m}
 }
@@ -44,13 +44,18 @@ func New(caps []string) *Set {
 
 // Add cap into s.
 func (s *Set) Add(cap string) {
+	insert(s.data, cap)
+}
+
+func insert(data map[string]nothing, cap string) {
 	name := normalize(cap)
 	if name == "all" {
-		sys := Supported()
-		s.data = sys.data
+		for k, v := range Supported().data {
+			data[k] = v
+		}
 		return
 	}
-	s.data[normalize(cap)] = null
+	data[name] = null
 }
 
 // Remove caps from s.

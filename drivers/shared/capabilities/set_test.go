@@ -25,6 +25,21 @@ func TestSet_Empty(t *testing.T) {
 	})
 }
 
+func TestSet_New(t *testing.T) {
+	t.Parallel()
+
+	t.Run("duplicates", func(t *testing.T) {
+		result := New([]string{"chown", "sys_time", "chown"})
+		require.Equal(t, "chown, sys_time", result.String())
+	})
+
+	t.Run("all", func(t *testing.T) {
+		result := New([]string{"all"})
+		exp := len(Supported().Slice())
+		require.Len(t, result.Slice(), exp)
+	})
+}
+
 func TestSet_Slice(t *testing.T) {
 	t.Parallel()
 
@@ -80,8 +95,9 @@ func TestSet_Add(t *testing.T) {
 		s := New([]string{"chown", "net_raw"})
 		require.Equal(t, "chown, net_raw", s.String())
 
-		s.Add("all") // # varies by operating system, max 64
-		require.GreaterOrEqual(t, len(s.Slice()), 16)
+		exp := len(Supported().Slice())
+		s.Add("all")
+		require.Len(t, s.Slice(), exp)
 	})
 
 }
