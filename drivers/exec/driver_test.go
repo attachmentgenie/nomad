@@ -825,4 +825,38 @@ func TestDriver_TaskConfig_validate(t *testing.T) {
 			}).validate())
 		}
 	})
+
+	t.Run("cap_add", func(t *testing.T) {
+		for _, tc := range []struct {
+			adds []string
+			exp  error
+		}{
+			{adds: nil, exp: nil},
+			{adds: []string{"chown"}, exp: nil},
+			{adds: []string{"CAP_CHOWN"}, exp: nil},
+			{adds: []string{"chown", "sys_time"}, exp: nil},
+			{adds: []string{"chown", "not_valid", "sys_time"}, exp: errors.New("cap_add configured with capabilities not supported by system: not_valid")},
+		} {
+			require.Equal(t, tc.exp, (&TaskConfig{
+				CapAdd: tc.adds,
+			}).validate())
+		}
+	})
+
+	t.Run("cap_drop", func(t *testing.T) {
+		for _, tc := range []struct {
+			drops []string
+			exp   error
+		}{
+			{drops: nil, exp: nil},
+			{drops: []string{"chown"}, exp: nil},
+			{drops: []string{"CAP_CHOWN"}, exp: nil},
+			{drops: []string{"chown", "sys_time"}, exp: nil},
+			{drops: []string{"chown", "not_valid", "sys_time"}, exp: errors.New("cap_drop configured with capabilities not supported by system: not_valid")},
+		} {
+			require.Equal(t, tc.exp, (&TaskConfig{
+				CapDrop: tc.drops,
+			}).validate())
+		}
+	})
 }

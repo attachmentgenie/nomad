@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -534,11 +535,18 @@ func (l *LibcontainerExecutor) handleExecWait(ch chan *waitResult, process *libc
 }
 
 func configureCapabilities(cfg *lconfigs.Config, command *ExecCommand) {
+
 	switch command.User {
 	case "root":
+
+		oldCaps := SupportedCaps(true)
+		sort.Strings(oldCaps)
+		fmt.Println("old allCaps:", oldCaps)
+
 		// when running as root, enable all capabilities available on the system
 		// (preserving existing behavior)
-		allCaps := capabilities.Supported().Slice()
+		allCaps := capabilities.Supported().Slice(true)
+		fmt.Println("cc root allCaps:", allCaps)
 		cfg.Capabilities = &lconfigs.Capabilities{
 			Bounding:    allCaps,
 			Permitted:   allCaps,
@@ -547,6 +555,7 @@ func configureCapabilities(cfg *lconfigs.Config, command *ExecCommand) {
 			Inheritable: nil,
 		}
 	default:
+		fmt.Println("cc nonroot cmdCaps:", command.Capabilities)
 		// otherwise apply the plugin + task capability configuration
 		cfg.Capabilities = &lconfigs.Capabilities{
 			Bounding: command.Capabilities,

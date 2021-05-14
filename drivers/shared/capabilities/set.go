@@ -2,6 +2,7 @@
 package capabilities
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -48,14 +49,16 @@ func (s *Set) Add(cap string) {
 }
 
 func insert(data map[string]nothing, cap string) {
-	name := normalize(cap)
-	if name == "all" {
+	switch name := normalize(cap); name {
+	case "":
+	case "all":
 		for k, v := range Supported().data {
 			data[k] = v
 		}
 		return
+	default:
+		data[name] = null
 	}
-	data[name] = null
 }
 
 // Remove caps from s.
@@ -83,18 +86,24 @@ func (s *Set) Difference(b *Set) *Set {
 
 // Empty return true if no capabilities exist in s.
 func (s *Set) Empty() bool {
+	fmt.Println("Empty:", len(s.data) == 0, "data:", s.data, "len:", len(s.data))
 	return len(s.data) == 0
 }
 
 // String returns the normalized and sorted string representation of s.
 func (s *Set) String() string {
-	return strings.Join(s.Slice(), ", ")
+	return strings.Join(s.Slice(false), ", ")
 }
 
 // Slice returns a sorted slice of capabilities in s.
-func (s *Set) Slice() []string {
+//
+// big - indicates whether to uppercase and prefix capabilities with CAP_
+func (s *Set) Slice(big bool) []string {
 	caps := make([]string, 0, len(s.data))
 	for c := range s.data {
+		if big {
+			c = "CAP_" + strings.ToUpper(c)
+		}
 		caps = append(caps, c)
 	}
 	sort.Strings(caps)
@@ -107,7 +116,8 @@ func (s *Set) Slice() []string {
 // since we must do comparisons on cap names, always normalize the names before
 // letting them into the Set data-structure
 func normalize(name string) string {
-	lower := strings.ToLower(name)
+	spaces := strings.TrimSpace(name)
+	lower := strings.ToLower(spaces)
 	trim := strings.TrimPrefix(lower, "cap_")
 	return trim
 }

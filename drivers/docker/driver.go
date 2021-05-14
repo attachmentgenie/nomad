@@ -23,7 +23,6 @@ import (
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/nomad/client/taskenv"
 	"github.com/hashicorp/nomad/drivers/docker/docklog"
-	"github.com/hashicorp/nomad/drivers/shared/capabilities"
 	"github.com/hashicorp/nomad/drivers/shared/eventer"
 	"github.com/hashicorp/nomad/drivers/shared/executor"
 	"github.com/hashicorp/nomad/drivers/shared/resolvconf"
@@ -1195,7 +1194,7 @@ func (d *Driver) getCaps(taskConfig *TaskConfig) ([]string, []string, error) {
 
 	// capabilities the task docker config is asking for based on the default
 	// capabilities allowable by nomad
-	desiredCaps, err := tweakCapabilities(capabilities.NomadDefaults(), taskConfig.CapAdd, taskConfig.CapDrop)
+	desiredCaps, err := tweakCapabilities(nomadDefaultCaps(), taskConfig.CapAdd, taskConfig.CapDrop)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1226,7 +1225,7 @@ func capDrops(dropCaps []string, allowCaps []string) []string {
 		return []string{"ALL"}
 	}
 
-	dockerDefaults := helper.SliceStringToSet(normalizeCaps(capabilities.DockerDefaults()))
+	dockerDefaults := helper.SliceStringToSet(normalizeCaps(dockerDefaultCaps()))
 	allowedCaps := helper.SliceStringToSet(normalizeCaps(allowCaps))
 
 	// find the docker default caps not in allowed caps

@@ -300,12 +300,12 @@ func (d *Driver) getCaps(tc *TaskConfig) ([]string, error) {
 	// if task did not specify allowed caps, use nomad defaults minus task drops
 	if len(tc.CapAdd) == 0 {
 		driverAllowed.Remove(tc.CapDrop)
-		return driverAllowed.Slice(), nil
+		return driverAllowed.Slice(true), nil
 	}
 
 	// otherwise task did specify allowed caps, enable exactly those
 	taskAdd := capabilities.New(tc.CapAdd)
-	return taskAdd.Slice(), nil
+	return taskAdd.Slice(true), nil
 }
 
 // Capabilities is returned by the Capabilities RPC and indicates what

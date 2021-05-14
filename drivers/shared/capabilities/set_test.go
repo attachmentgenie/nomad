@@ -33,10 +33,15 @@ func TestSet_New(t *testing.T) {
 		require.Equal(t, "chown, sys_time", result.String())
 	})
 
+	t.Run("empty string", func(t *testing.T) {
+		result := New([]string{""})
+		require.True(t, result.Empty())
+	})
+
 	t.Run("all", func(t *testing.T) {
 		result := New([]string{"all"})
-		exp := len(Supported().Slice())
-		require.Len(t, result.Slice(), exp)
+		exp := len(Supported().Slice(false))
+		require.Len(t, result.Slice(false), exp)
 	})
 }
 
@@ -47,17 +52,17 @@ func TestSet_Slice(t *testing.T) {
 
 	t.Run("lower case", func(t *testing.T) {
 		s := New([]string{"net_raw", "chown", "sys_time"})
-		require.Equal(t, exp, s.Slice())
+		require.Equal(t, exp, s.Slice(false))
 	})
 
 	t.Run("upper case", func(t *testing.T) {
 		s := New([]string{"NET_RAW", "CHOWN", "SYS_TIME"})
-		require.Equal(t, exp, s.Slice())
+		require.Equal(t, exp, s.Slice(false))
 	})
 
 	t.Run("prefix", func(t *testing.T) {
 		s := New([]string{"CAP_net_raw", "sys_TIME", "cap_chown"})
-		require.Equal(t, exp, s.Slice())
+		require.Equal(t, exp, s.Slice(false))
 	})
 }
 
@@ -91,13 +96,19 @@ func TestSet_Add(t *testing.T) {
 		require.Equal(t, "af_net, chown, net_raw, sys_time", s.String())
 	})
 
+	t.Run("add empty string", func(t *testing.T) {
+		s := New([]string{"chown"})
+		s.Add("")
+		require.Equal(t, "chown", s.String())
+	})
+
 	t.Run("add all", func(t *testing.T) {
 		s := New([]string{"chown", "net_raw"})
 		require.Equal(t, "chown, net_raw", s.String())
 
-		exp := len(Supported().Slice())
+		exp := len(Supported().Slice(false))
 		s.Add("all")
-		require.Len(t, s.Slice(), exp)
+		require.Len(t, s.Slice(false), exp)
 	})
 
 }

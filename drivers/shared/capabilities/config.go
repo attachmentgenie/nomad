@@ -13,8 +13,8 @@ const (
 // NomadDefaults is the subset of dockerDefaultCaps that Nomad enables by
 // default and is used to compute the set of capabilities to add/drop given
 // docker driver configuration.
-func NomadDefaults() []string {
-	return []string{
+func NomadDefaults() *Set {
+	return New([]string{
 		"AUDIT_WRITE",
 		"CHOWN",
 		"DAC_OVERRIDE",
@@ -28,7 +28,7 @@ func NomadDefaults() []string {
 		"SETPCAP",
 		"SETUID",
 		"SYS_CHROOT",
-	}
+	})
 }
 
 // DockerDefaults is a list of Linux capabilities enabled by docker by default
@@ -36,8 +36,10 @@ func NomadDefaults() []string {
 // configuration, as well as Nomad built-in limitations.
 //
 // https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities
-func DockerDefaults() []string {
-	return append(NomadDefaults(), "NET_RAW")
+func DockerDefaults() *Set {
+	defaults := NomadDefaults()
+	defaults.Add("NET_RAW")
+	return defaults
 }
 
 // Supported returns the set of capabilities supported by the operating system.
