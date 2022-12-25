@@ -153,7 +153,7 @@
   "optionalDependencies": {
     "@babel/plugin-transform-member-expression-literals": "^7.16.7",
     "@storybook/addon-knobs": "^6.3.1",
-    "@storybook/addon-storysource": "^6.3.10",
+    "@storybook/addon-storysource": "^6.5.15",
     "@storybook/addon-viewport": "^6.3.10",
     "@storybook/addons": "^6.3.10",
     "@storybook/ember": "^6.3.10",
