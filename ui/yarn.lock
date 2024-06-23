@@ -5495,7 +5495,7 @@ decode-uri-component@^0.2.0, decode-uri-component@^0.2.2:
   resolved "https://registry.yarnpkg.com/decode-uri-component/-/decode-uri-component-0.2.2.tgz#e69dbe25d37941171dd540e024c444cd5188e1e9"
   integrity sha512-FqUYQ+8o158GyGTrMFJms9qh3CqTKvAqgqsTnkLI8sKu0028orqBhxNMFkFen0zGyg6epACD32pjVk58ngIErQ==
 
-decorator-transforms@^1.1.0:
+decorator-transforms@^1.1.0, decorator-transforms@^1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/decorator-transforms/-/decorator-transforms-1.2.1.tgz#d72e39b95c9e3d63465f82b148d021919e9d198f"
   integrity sha512-UUtmyfdlHvYoX3VSG1w5rbvBQ2r5TX1JsE4hmKU9snleFymadA3VACjl6SRfi9YgBCSjBbfQvR1bs9PRW9yBKw==
@@ -6237,7 +6237,7 @@ ember-cli-typescript@^3.1.3, ember-cli-typescript@^3.1.4:
     stagehand "^1.0.0"
     walk-sync "^2.0.0"
 
-ember-cli-typescript@^4.0.0, ember-cli-typescript@^4.1.0, ember-cli-typescript@^4.2.1:
+ember-cli-typescript@^4.1.0, ember-cli-typescript@^4.2.1:
   version "4.2.1"
   resolved "https://registry.yarnpkg.com/ember-cli-typescript/-/ember-cli-typescript-4.2.1.tgz#54d08fc90318cc986f3ea562f93ce58a6cc4c24d"
   integrity sha512-0iKTZ+/wH6UB/VTWKvGuXlmwiE8HSIGcxHamwNhEC5x1mN3z8RfvsFZdQWYUzIWFN2Tek0gmepGRPTwWdBYl/A==
@@ -6790,13 +6790,13 @@ ember-qunit@^5.1.5:
     silent-error "^1.1.1"
     validate-peer-dependencies "^1.2.0"
 
-ember-render-helpers@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/ember-render-helpers/-/ember-render-helpers-0.2.0.tgz#5f7af8ee74ae29f85e0d156b2775edff23f6de21"
-  integrity sha512-MnqGS8BnY3GJ+n5RZVVRqCwKjfXXMr5quKyqNu1vxft8oslOJuZ1f1dOesQouD+6LwD4Y9tWRVKNw+LOqM9ocw==
+ember-render-helpers@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/ember-render-helpers/-/ember-render-helpers-1.0.2.tgz#4b6cf297d1728859a549dd8bc71706be0ba2a751"
+  integrity sha512-/smffU4tPqBmSkuYD25iS8dA3Ldw7xWrUXEnv3o9rKZ4OALMrBifFDmX5koTV1nMoY6HC+8YqbYvdpBTEQzpXg==
   dependencies:
-    ember-cli-babel "^7.23.0"
-    ember-cli-typescript "^4.0.0"
+    "@embroider/addon-shim" "^1.8.7"
+    decorator-transforms "^1.2.1"
 
 ember-resize-observer-service@^1.1.0:
   version "1.1.0"
